@@ -5,8 +5,13 @@ import Register from "./features/auth/pages/Register";
 import Dashboard from "./features/auth/pages/Dashboard";
 import GuestRoute from "./features/auth/pages/GuestRoute";
 import ProtectedRoute from "./features/auth/pages/ProtectedRoute";
+import PrivacyPolicy from "./features/privacy/PrivacyPolicy";
 
 export const router = createBrowserRouter([
+  {
+    path: "/privacy",
+    element: <PrivacyPolicy />,
+  },
   {
     path: "/login",
     element: <GuestRoute><Login /></GuestRoute>,

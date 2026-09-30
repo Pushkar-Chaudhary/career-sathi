@@ -1,11 +1,16 @@
  const mongoose=require('mongoose')
 
  const blacklistTokenSchema= new mongoose.Schema({
-    token:{
+    tokenHash:{
         type:String,
-        required:[true , "token is required to be added in blacklist"]
+        index:true
     },
-    
+    expiresAt:{
+        type:Date,
+        expires:0
+    },
+    // Keep checking legacy tokens while existing sessions expire.
+    token:String
  })
  const tokenBlacklistModel= mongoose.model("blacklistTokens",blacklistTokenSchema)
  module.exports=tokenBlacklistModel;
