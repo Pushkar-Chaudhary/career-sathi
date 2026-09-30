@@ -4,6 +4,12 @@
   "private": true,
   "scripts": {
     "start": "npm --prefix Backend start",
+    "dev": "node scripts/dev.js",
+    "start:all": "npm run dev",
+    "build": "npm --prefix Frontend run build",
+    "test": "npm --prefix Backend test",
+    "lint": "npm --prefix Frontend run lint",
+    "check": "npm run test && npm run lint && npm run build",
     "dev:backend": "npm --prefix Backend run dev",
     "dev:frontend": "npm --prefix Frontend run dev"
   }

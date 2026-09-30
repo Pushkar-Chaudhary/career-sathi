@@ -30,9 +30,9 @@ function Register() {
           <h1>Build your future</h1>
           <p>Open new opportunities and start creating your next chapter.</p>
           <ul className="mini-list">
-            <li>Personal profile</li>
-            <li>Career guidance</li>
-            <li>Smart job matching</li>
+            <li>Create a personal career workspace</li>
+            <li>Track your job applications</li>
+            <li>Get role matches and interview preparation</li>
           </ul>
         </div>
 
@@ -41,15 +41,15 @@ function Register() {
           <form className="auth-form" onSubmit={handleSubmit}>
             <label>
               Username
-              <input id="username" name="username" type="text" placeholder="your username" value={username} onChange={(event) => setUsername(event.target.value)} required />
+              <input id="username" name="username" type="text" autoComplete="username" minLength={3} maxLength={32} placeholder="your username" value={username} onChange={(event) => setUsername(event.target.value)} required />
             </label>
             <label>
               Email
-              <input id="email" type="email" placeholder="name@email.com" name="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+              <input id="email" type="email" autoComplete="email" maxLength={254} placeholder="name@email.com" name="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
             </label>
             <label>
               Password
-              <input id="password" name="password" type="password" placeholder="Create password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={8} required />
+              <input id="password" name="password" type="password" autoComplete="new-password" placeholder="Create password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={8} maxLength={72} required />
             </label>
 
             {error && <p className="form-error" role="alert">{error}</p>}
@@ -59,6 +59,7 @@ function Register() {
           <p className="switch-text">
             Already have an account? <Link to="/login">Login</Link>
           </p>
+          <p className="privacy-inline"><Link to="/privacy">Privacy policy</Link></p>
         </div>
       </div>
     </div>

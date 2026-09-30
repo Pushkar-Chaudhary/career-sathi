@@ -43,9 +43,9 @@ function Login() {
                     </p>
 
                     <ul className="mini-list">
-                        <li>Track opportunities</li>
-                        <li>Manage applications</li>
-                        <li>Grow your profile</li>
+                        <li>Save roles and track application progress</li>
+                        <li>Compare your resume with a job posting</li>
+                        <li>Practice with a tailored interview plan</li>
                     </ul>
                 </div>
 
@@ -116,6 +116,7 @@ function Login() {
                             Create account
                         </Link>
                     </p>
+                    <p className="privacy-inline"><Link to="/privacy">Privacy policy</Link></p>
                 </div>
 
             </div>

@@ -63,6 +63,11 @@ const preparationPlanSchema = new mongoose.Schema({
     }]
 })
  const interviewReportSchema = new mongoose.Schema({
+    userId:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'users',
+        required:true
+    },
     jobDescription:{
         type:String,
         required:[true,"Job description is required"]
@@ -73,10 +78,28 @@ const preparationPlanSchema = new mongoose.Schema({
     selfDescription:{
         type:String,
     },
+    aiConsentAt:{
+        type:Date,
+        required:true
+    },
+    summary:{
+        type:String,
+        required:true
+    },
     matchScore:{
         type:Number,
+        required:true,
         min:0,
         max:100,
     },
-    technicalQuestions:[]
+    technicalQuestions:[technicalQuestionSchema],
+    behavioralQuestions:[behavioralQuestionSchema],
+    skillGaps:[skillGapSchema],
+    preparationPlan:[preparationPlanSchema]
+ },{
+    timestamps:true
  })
+
+interviewReportSchema.index({ userId: 1, createdAt: -1 });
+
+module.exports = mongoose.model('InterviewReport', interviewReportSchema);
