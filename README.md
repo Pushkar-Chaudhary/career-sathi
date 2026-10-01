@@ -2,21 +2,20 @@
 
 Career Sathi is a React frontend and Express API. It includes Gemini-powered resume drafts, interview reports, an in-app career guide, and an application tracker. MongoDB stores user accounts, interview reports, and applications; resume drafts and guide conversations are not saved to the app database.
 
-## Deployment layout
+## Deploy to Vercel
 
-Deploy the frontend and backend as separate services on the same site, for example `app.example.com` and `api.example.com`, or put them behind a same-origin reverse proxy. Browsers can block the session cookie when the services use unrelated site domains, which breaks sign-in.
+The repository is configured as one Vercel project: Vercel builds the frontend from `Frontend/` and serves the Express API as a serverless function from `api/index.js`. API requests and the frontend share one origin, so leave `VITE_API_URL` unset.
 
-Deploy the frontend and backend as separate services:
+1. Import this repository into Vercel and keep the project root set to the repository root. The included `vercel.json` installs both package trees, builds `Frontend/dist/`, routes `/api/*` and `/health` to Express, and sends frontend routes to the React app.
+2. Add `MONGO_URI`, `JWT_SECRET` (at least 32 characters), and `GOOGLE_GENAI_API_KEY` to the Vercel project environment variables.
+3. Set `FRONTEND_URL` to the exact HTTPS origin users visit, with no path or trailing slash (for example, `https://your-project.vercel.app`). Add a comma-separated list of exact origins if using a custom domain too.
+4. Deploy. In production, session cookies are HTTP-only and Secure, and the API shares the frontend's domain.
 
-1. Build the static frontend with `npm ci` in `Frontend/`, then `npm run build`. Publish `Frontend/dist/` on a static hosting service.
-2. Deploy `Backend/` as a Node service. Run `npm ci` and use `npm start` to start the API.
-3. Configure the frontend build variable `VITE_API_URL` to the backend's public origin, such as `https://api.example.com`.
-4. Configure the backend environment variables below. Set `FRONTEND_URL` to the exact public frontend origin, without a path or trailing slash.
-5. Serve both services over HTTPS. In production, the session cookie is HTTP-only and Secure.
+For preview deployments, configure `FRONTEND_URL` with the preview origin(s) you intend to use; write requests from origins not listed there are rejected.
 
-Use Node.js `20.19+` or `22.12+` for the frontend build. The Gemini SDK also requires Node.js 20 or newer.
+Use Node.js `22.12.x` for local development and deployment. Vercel allows up to 60 seconds for API function requests, which accommodates typical AI generation latency.
 
-Run `npm run dev` at the repository root to start the frontend and backend together. Press Ctrl+C to stop both. The root `npm start` command is for the backend service in production and does not serve the built frontend.
+Run `npm run dev` at the repository root to start the frontend and backend together. Press Ctrl+C to stop both. The root `npm start` command starts the local backend service; Vercel uses the serverless entry point instead.
 
 ## Backend environment
 
@@ -27,6 +26,8 @@ Run `npm run dev` at the repository root to start the frontend and backend toget
 - `NODE_ENV`: set to `production` in the deployed backend.
 - `PORT`: optional; hosting providers usually set this.
 - `GEMINI_MODEL`: optional; defaults to `gemini-3.8-flash`.
+
+Authentication is throttled per client IP (10 sign-in attempts per 15 minutes and 5 account creations per hour). AI resume drafts and career guide requests are throttled per signed-in user using expiring MongoDB counters, so limits are shared across serverless instances.
 
 Keep `.env` files out of source control. The root `.gitignore` excludes them.
 

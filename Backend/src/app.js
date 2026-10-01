@@ -4,6 +4,7 @@ const cookieParser = require('cookie-parser');
 const app = express();
 const { isTrustedFrontendOrigin } = require('./config/frontend-origin');
 
+app.set('trust proxy', 1);
 app.disable('x-powered-by');
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
