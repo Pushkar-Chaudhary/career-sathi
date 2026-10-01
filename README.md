@@ -12,7 +12,7 @@ The repository is configured as one Vercel project with two Services: an Express
 
 For preview deployments, configure `FRONTEND_URL` with the preview origin(s) you intend to use; write requests from origins not listed there are rejected.
 
-Use Node.js `22.12.x` for local development and deployment. The backend function is configured for up to 60 seconds per request, subject to your Vercel plan limits.
+Use Node.js `22.12.x` or `24.x` for local development and deployment. The backend function is configured for up to 60 seconds per request, subject to your Vercel plan limits.
 
 Run `npm run dev` at the repository root to start the frontend and backend together. Press Ctrl+C to stop both. Use `vercel dev` from the repository root to test Vercel Services routing locally.
 
