@@ -100,12 +100,18 @@ async function deleteInterviewReportController(req, res) {
 }
 
 function aiErrorResponse(res, feature, error) {
-  console.error(`${feature} generation failed:`, error);
-  return res.status(error.status || 502).json({
-    message: error.status === 503
-      ? 'Gemini is not configured on this API server. For local development, restart the backend after checking Backend/.env. For deployment, set GOOGLE_GENAI_API_KEY in the backend host environment and restart it.'
-      : 'Gemini could not complete this request. Please review your input and try again.'
-  });
+  const status = Number.isInteger(error.status) ? error.status : 502;
+  const isNotConfigured = error.code === 'AI_NOT_CONFIGURED';
+  const message = isNotConfigured
+    ? 'Gemini is not configured on this API server. For local development, restart the backend after checking Backend/.env. For deployment, set GOOGLE_GENAI_API_KEY in the backend host environment and restart it.'
+    : status === 503
+      ? 'Gemini is temporarily unavailable. Please try again shortly.'
+      : status === 429
+        ? 'Gemini is receiving too many requests right now. Please try again shortly.'
+        : 'Gemini could not complete this request. Please review your input and try again.';
+
+  console.error(`${feature} generation failed (status ${status}, code ${error.code || 'UNKNOWN'}).`);
+  return res.status(status).json({ message });
 }
 
 async function createResumeDraftController(req, res) {
@@ -162,5 +168,6 @@ module.exports = {
   getInterviewReportsController,
   deleteInterviewReportController,
   createResumeDraftController,
-  answerCareerAssistantController
+  answerCareerAssistantController,
+  aiErrorResponse
 };

@@ -1,6 +1,28 @@
 const { GoogleGenAI } = require('@google/genai');
 require('../config/load-env');
 
+function missingApiKeyError() {
+  const error = new Error('GOOGLE_GENAI_API_KEY is not set in Backend/.env.');
+  error.status = 503;
+  error.code = 'AI_NOT_CONFIGURED';
+  return error;
+}
+
+async function generateContentWithRetry(ai, request) {
+  const retryableStatuses = new Set([408, 500, 502, 503, 504]);
+
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await ai.models.generateContent(request);
+    } catch (error) {
+      const status = Number(error.status || error.statusCode);
+      const retryableCode = ['DEADLINE_EXCEEDED', 'INTERNAL', 'UNAVAILABLE'].includes(String(error.code).toUpperCase());
+      if ((!retryableStatuses.has(status) && !retryableCode) || attempt >= 2) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 300 * (2 ** attempt)));
+    }
+  }
+}
+
 const reportSchema = {
   type: 'OBJECT',
   properties: {
@@ -59,14 +81,10 @@ const reportSchema = {
 
 async function generateInterviewReport({ jobDescription, resume, selfDescription }) {
   const apiKey = process.env.GOOGLE_GENAI_API_KEY;
-  if (!apiKey) {
-    const error = new Error('GOOGLE_GENAI_API_KEY is not set in Backend/.env.');
-    error.status = 503;
-    throw error;
-  }
+  if (!apiKey) throw missingApiKeyError();
 
   const ai = new GoogleGenAI({ apiKey });
-  const response = await ai.models.generateContent({
+  const response = await generateContentWithRetry(ai, {
     model: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
     contents: [
       'Create a practical, evidence-based interview preparation report from the candidate and job information below.',
@@ -99,14 +117,10 @@ async function generateInterviewReport({ jobDescription, resume, selfDescription
 
 async function generateResumeDraft(profile) {
   const apiKey = process.env.GOOGLE_GENAI_API_KEY;
-  if (!apiKey) {
-    const error = new Error('GOOGLE_GENAI_API_KEY is not set in Backend/.env.');
-    error.status = 503;
-    throw error;
-  }
+  if (!apiKey) throw missingApiKeyError();
 
   const ai = new GoogleGenAI({ apiKey });
-  const response = await ai.models.generateContent({
+  const response = await generateContentWithRetry(ai, {
     model: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
     contents: [
       'Create a polished, ATS-readable resume draft for the target role using only the facts provided below.',
@@ -129,15 +143,11 @@ async function generateResumeDraft(profile) {
 
 async function answerCareerAssistant(messages) {
   const apiKey = process.env.GOOGLE_GENAI_API_KEY;
-  if (!apiKey) {
-    const error = new Error('GOOGLE_GENAI_API_KEY is not set in Backend/.env.');
-    error.status = 503;
-    throw error;
-  }
+  if (!apiKey) throw missingApiKeyError();
 
   const conversation = messages.map(({ role, content }) => `${role === 'assistant' ? 'CAREER SATHI GUIDE' : 'USER'}: ${content}`).join('\n\n');
   const ai = new GoogleGenAI({ apiKey });
-  const response = await ai.models.generateContent({
+  const response = await generateContentWithRetry(ai, {
     model: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
     contents: [
       'You are the Career Sathi in-app guide. Explain how to use this app: sign in, create an AI resume draft, generate interview reports, track applications, delete saved reports or applications, and find the privacy policy.',
@@ -152,4 +162,4 @@ async function answerCareerAssistant(messages) {
   return response.text.trim();
 }
 
-module.exports = { generateInterviewReport, generateResumeDraft, answerCareerAssistant };
+module.exports = { generateInterviewReport, generateResumeDraft, answerCareerAssistant, generateContentWithRetry };
