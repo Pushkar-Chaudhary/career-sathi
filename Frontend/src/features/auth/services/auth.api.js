@@ -15,7 +15,7 @@ export async function logout(){
     return response.data
 }
 export async function getMe(){
-    const response = await api.get("/api/auth/get-me")
+    const response = await api.get("/api/auth/get-me", { timeout: 15000 })
     return response.data
 }
 export async function createInterviewReport({jobDescription, resume, selfDescription, consentToAI}){
