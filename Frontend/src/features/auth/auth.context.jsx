@@ -8,6 +8,8 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [sessionError, setSessionError] = useState(false);
+    const [sessionAttempt, setSessionAttempt] = useState(0);
 
     useEffect(() => {
         let isMounted = true;
@@ -16,8 +18,10 @@ export const AuthProvider = ({ children }) => {
             .then((data) => {
                 if (isMounted) setUser(data.user);
             })
-            .catch(() => {
-                if (isMounted) setUser(null);
+            .catch((error) => {
+                if (!isMounted) return;
+                setUser(null);
+                if (error.response?.status !== 401) setSessionError(true);
             })
             .finally(() => {
                 if (isMounted) setLoading(false);
@@ -26,7 +30,7 @@ export const AuthProvider = ({ children }) => {
         return () => {
             isMounted = false;
         };
-    }, []);
+    }, [sessionAttempt]);
 
     return (
         <AuthContext.Provider
@@ -34,7 +38,13 @@ export const AuthProvider = ({ children }) => {
                 user,
                 setUser,
                 loading,
-                setLoading
+                setLoading,
+                sessionError,
+                retrySession: () => {
+                    setSessionError(false);
+                    setLoading(true);
+                    setSessionAttempt((attempt) => attempt + 1);
+                }
             }}
         >
             {children}
