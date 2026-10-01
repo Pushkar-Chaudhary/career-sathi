@@ -4,18 +4,17 @@ Career Sathi is a React frontend and Express API. It includes Gemini-powered res
 
 ## Deploy to Vercel
 
-The repository is configured as one Vercel project: Vercel builds the frontend from `Frontend/` and serves the Express API as a serverless function from `api/index.js`. API requests and the frontend share one origin, so leave `VITE_API_URL` unset.
+The repository is configured as one Vercel project with two Services: an Express backend rooted at `Backend/` and a Vite frontend rooted at `Frontend/`. Project-level rewrites send `/api/*` and `/health` to the backend and all other paths to the frontend. The services share one public origin, so leave `VITE_API_URL` unset. No service binding is needed because the browser calls the same-origin API path; neither service makes server-side requests to the other.
 
-1. Import this repository into Vercel and keep the project root set to the repository root. The included `vercel.json` installs both package trees, builds `Frontend/dist/`, routes `/api/*` and `/health` to Express, and sends frontend routes to the React app.
-2. Add `MONGO_URI`, `JWT_SECRET` (at least 32 characters), and `GOOGLE_GENAI_API_KEY` to the Vercel project environment variables.
-3. Set `FRONTEND_URL` to the exact HTTPS origin users visit, with no path or trailing slash (for example, `https://your-project.vercel.app`). Add a comma-separated list of exact origins if using a custom domain too.
-4. Deploy. In production, session cookies are HTTP-only and Secure, and the API shares the frontend's domain.
+1. Import this repository into Vercel, keep the project root at the repository root, and ensure Vercel Services is enabled for your account.
+2. Add `MONGO_URI`, `JWT_SECRET` (at least 32 characters), `GOOGLE_GENAI_API_KEY`, and `FRONTEND_URL` to the backend service environment. Set `FRONTEND_URL` to the exact HTTPS origin users visit, without a path or trailing slash. Add comma-separated origins if needed.
+3. Deploy. In production, session cookies are HTTP-only and Secure, and the API shares the frontend's domain.
 
 For preview deployments, configure `FRONTEND_URL` with the preview origin(s) you intend to use; write requests from origins not listed there are rejected.
 
-Use Node.js `22.12.x` for local development and deployment. Vercel allows up to 60 seconds for API function requests, which accommodates typical AI generation latency.
+Use Node.js `22.12.x` for local development and deployment. The backend function is configured for up to 60 seconds per request, subject to your Vercel plan limits.
 
-Run `npm run dev` at the repository root to start the frontend and backend together. Press Ctrl+C to stop both. The root `npm start` command starts the local backend service; Vercel uses the serverless entry point instead.
+Run `npm run dev` at the repository root to start the frontend and backend together. Press Ctrl+C to stop both. Use `vercel dev` from the repository root to test Vercel Services routing locally.
 
 ## Backend environment
 
