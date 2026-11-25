@@ -1,9 +1,25 @@
 # Dependencies
 **/node_modules/
+/.vercel/
 
 # Environment and secrets
 **/.env
 **/.env.*
+!**/.env.example
+
+# Local credentials, certificates, and service account files
+**/credentials.json
+**/service-account*.json
+**/.npmrc
+!**/.npmrc.example
+**/secrets/
+**/credentials/
+**/.aws/
+**/.ssh/
+*.pem
+*.key
+*.p12
+*.pfx
 
 # Build and test output
 Frontend/dist/
