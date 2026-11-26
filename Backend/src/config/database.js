@@ -27,7 +27,7 @@ async function connect(mongoURI) {
     console.log('Database Connected');
     return mongoose.connection;
   } catch (error) {
-    console.error('Database connection failed:', error.message);
+    console.error('Database connection failed:', error.name || 'Error', error.code || 'unknown');
     throw error;
   }
 }

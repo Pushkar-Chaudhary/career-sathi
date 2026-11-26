@@ -4,7 +4,7 @@ import { askCareerAssistant } from "../services/auth.api";
 
 const WELCOME_MESSAGE = {
   role: "assistant",
-  content: "Hi! I can show you around Career Sathi, explain your interview report, help with resume questions, or talk through your job search.",
+  content: "Hi! Ask me about interview practice, your resume, career planning, or using this workspace.",
 };
 
 const QUICK_QUESTIONS = [
@@ -31,9 +31,12 @@ function CareerGuide() {
     const content = question.trim();
     if (!content || !consentToAI || sending) return;
 
+    const previousMessages = messages;
     const userMessage = { role: "user", content };
-    const history = [...messages.slice(-10), userMessage];
-    setMessages(history);
+    // The welcome copy is UI only; send actual turns so Gemini receives a user-first chat history.
+    const conversation = previousMessages.filter((message) => message !== WELCOME_MESSAGE);
+    const history = [...conversation.slice(-10), userMessage];
+    setMessages([...previousMessages, userMessage]);
     setQuestion("");
     setError("");
     setSending(true);
@@ -41,6 +44,8 @@ function CareerGuide() {
       const { answer } = await askCareerAssistant({ messages: history, consentToAI });
       setMessages((current) => [...current, { role: "assistant", content: answer }]);
     } catch (requestError) {
+      setMessages(previousMessages);
+      setQuestion(content);
       setError(requestError.response?.data?.message || "I couldn't get an answer right now. Please try again.");
     } finally {
       setSending(false);
@@ -51,13 +56,13 @@ function CareerGuide() {
     <>
       <button className={`guide-launcher${open ? " is-open" : ""}`} type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-controls="career-guide-panel">
         <span className="guide-launcher-icon" aria-hidden="true">{open ? "x" : "AI"}</span>
-        <span>{open ? "Close guide" : "Ask Career Sathi"}</span>
+        <span>{open ? "Close guide" : "Ask AI"}</span>
       </button>
 
       {open && (
-        <aside className="career-guide-panel" id="career-guide-panel" aria-label="Career Sathi guide">
+        <aside className="career-guide-panel" id="career-guide-panel" aria-label="AI career guide">
           <header className="guide-header">
-            <span className="guide-avatar" aria-hidden="true">CS</span>
+            <img className="guide-avatar" src="/career-sathi-logo.png" alt="" />
             <div><strong>Your career guide</strong><span>App help and career questions</span></div>
             <button type="button" className="guide-close" onClick={() => setOpen(false)} aria-label="Close guide">x</button>
           </header>
@@ -86,7 +91,7 @@ function CareerGuide() {
               <input value={question} onChange={(event) => setQuestion(event.target.value)} maxLength={1500} placeholder="Ask about the app or your next step" aria-label="Your question" />
               <button type="submit" disabled={sending || !consentToAI || !question.trim()} aria-label="Send question">Send</button>
             </div>
-            <small>Chats stay in this browser session and aren’t saved to your account.</small>
+            <small>Chats stay in this browser session and are not saved to your account.</small>
           </form>
         </aside>
       )}

@@ -4,8 +4,11 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const tokenBlacklistModel=require("../models/blacklist.model")
 const { hashSessionToken } = require('../utils/session-token');
+const { createHash, randomBytes } = require('node:crypto');
+const { isEmailConfigured, sendPasswordResetEmail } = require('../services/email.service');
 
 const SESSION_DURATION_MS = 24 * 60 * 60 * 1000;
+const PASSWORD_RESET_DURATION_MS = 30 * 60 * 1000;
 
 function normalizeEmail(value) {
     return typeof value === 'string' ? value.trim().toLowerCase() : '';
@@ -20,6 +23,77 @@ function getSessionCookieOptions() {
         path: '/',
         maxAge: SESSION_DURATION_MS
     };
+}
+
+function getFrontendOrigin() {
+    const configured = (process.env.FRONTEND_URL || '').split(',').map((origin) => origin.trim()).find(Boolean);
+    return configured || 'http://localhost:5173';
+}
+
+async function requestPasswordResetController(req, res) {
+    const email = normalizeEmail(req.body?.email);
+    const genericResponse = { message: 'If an account exists for that email, a password reset link will be sent shortly.' };
+    if (!email || email.length > 254) return res.status(200).json(genericResponse);
+    if (!isEmailConfigured()) {
+        return res.status(503).json({ message: 'Password reset email is not configured yet. Please contact the site administrator.' });
+    }
+
+    let user;
+    try {
+        user = await userModel.findOne({ email });
+        if (!user) return res.status(200).json(genericResponse);
+
+        const token = randomBytes(32).toString('hex');
+        const tokenHash = createHash('sha256').update(token).digest('hex');
+        const expiresAt = new Date(Date.now() + PASSWORD_RESET_DURATION_MS);
+        await userModel.updateOne({ _id: user._id }, {
+            $set: { passwordResetTokenHash: tokenHash, passwordResetExpiresAt: expiresAt }
+        });
+
+        const resetUrl = new URL('/reset-password', getFrontendOrigin());
+        resetUrl.searchParams.set('token', token);
+        await sendPasswordResetEmail({ to: user.email, resetUrl: resetUrl.toString() });
+        return res.status(200).json(genericResponse);
+    } catch (error) {
+        if (user?._id) {
+            await userModel.updateOne(
+                { _id: user._id },
+                { $unset: { passwordResetTokenHash: 1, passwordResetExpiresAt: 1 } }
+            ).catch(() => {});
+        }
+        console.error('Password reset email could not be sent:', error?.message || 'unknown error');
+        return res.status(200).json(genericResponse);
+    }
+}
+
+async function resetPasswordController(req, res) {
+    const token = typeof req.body?.token === 'string' ? req.body.token : '';
+    const password = typeof req.body?.password === 'string' ? req.body.password : '';
+    if (!/^[a-f0-9]{64}$/i.test(token)) {
+        return res.status(400).json({ message: 'This reset link is invalid or has expired. Request a new one.' });
+    }
+    if (password.length < 8 || Buffer.byteLength(password, 'utf8') > 72) {
+        return res.status(400).json({ message: 'Password must be at least 8 characters and no more than 72 bytes.' });
+    }
+
+    try {
+        const tokenHash = createHash('sha256').update(token).digest('hex');
+        const passwordHash = await bcrypt.hash(password, 12);
+        const user = await userModel.findOneAndUpdate(
+            { passwordResetTokenHash: tokenHash, passwordResetExpiresAt: { $gt: new Date() } },
+            {
+                $set: { password: passwordHash },
+                $unset: { passwordResetTokenHash: 1, passwordResetExpiresAt: 1 },
+                $inc: { authVersion: 1 }
+            },
+            { returnDocument: 'after' }
+        );
+        if (!user) return res.status(400).json({ message: 'This reset link is invalid or has expired. Request a new one.' });
+        return res.status(200).json({ message: 'Your password has been reset. Sign in with your new password.' });
+    } catch (error) {
+        console.error('Password reset failed:', error?.name || 'Error', error?.code || 'unknown');
+        return res.status(500).json({ message: 'Unable to reset your password right now. Please try again.' });
+    }
 }
 // ==================== REGISTER ====================
 
@@ -56,7 +130,7 @@ async function registerUserController(req, res) {
         }
 
         // Hash password
-        const hash = await bcrypt.hash(password, 10);
+        const hash = await bcrypt.hash(password, 12);
 
         // Create user
         const user = await userModel.create({
@@ -69,7 +143,8 @@ async function registerUserController(req, res) {
         const token = jwt.sign(
             {
                 id: user._id,
-                username: user.username
+                username: user.username,
+                authVersion: user.authVersion || 0
             },
             process.env.JWT_SECRET,
             {
@@ -91,7 +166,10 @@ async function registerUserController(req, res) {
         });
 
     } catch (error) {
-        console.error(error);
+        if (error?.code === 11000) {
+            return res.status(409).json({ message: 'Account already exists with this email or username.' });
+        }
+        console.error('Account registration failed:', error?.name || 'Error', error?.code || 'unknown');
 
         return res.status(500).json({
             message: "Something went wrong"
@@ -139,7 +217,8 @@ async function loginUserController(req, res) {
         const token = jwt.sign(
             {
                 id: user._id,
-                username: user.username
+                username: user.username,
+                authVersion: user.authVersion || 0
             },
             process.env.JWT_SECRET,
             {
@@ -161,7 +240,7 @@ async function loginUserController(req, res) {
         });
 
     } catch (error) {
-        console.error(error);
+        console.error('Account sign-in failed:', error?.name || 'Error', error?.code || 'unknown');
 
         return res.status(500).json({
             message: "Something went wrong"
@@ -206,6 +285,8 @@ res.status(200).json({
 module.exports = {
     registerUserController,
     loginUserController,
+    requestPasswordResetController,
+    resetPasswordController,
     logoutUserController,
     getMeController
 };

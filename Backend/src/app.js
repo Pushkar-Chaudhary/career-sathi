@@ -51,7 +51,7 @@ app.use((req, res) => {
 
 app.use((err, req, res, next) => {
   const status = Number.isInteger(err.status) && err.status >= 400 && err.status < 600 ? err.status : 500;
-  if (status >= 500) console.error('Unhandled API error:', err);
+  if (status >= 500) console.error('Unhandled API error:', err.name || 'Error', err.code || 'unknown');
   res.status(status).json({
     message: status >= 500 ? 'Internal server error.' : (err.message || 'Request could not be processed.')
   });

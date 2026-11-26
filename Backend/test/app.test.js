@@ -33,6 +33,7 @@ test('report and application data routes require a signed-in session', async () 
       fetch(`${baseUrl}/api/applications`),
       fetch(`${baseUrl}/api/ai/resume-draft`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ targetRole: 'Designer', consentToAI: true }) }),
       fetch(`${baseUrl}/api/ai/assistant`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ messages: [{ role: 'user', content: 'Help me' }], consentToAI: true }) }),
+      fetch(`${baseUrl}/api/ai/roadmap`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ goal: 'Designer', currentLevel: 'New graduate', weeklyHours: 5, consentToAI: true }) }),
       fetch(`${baseUrl}/api/ai/reports`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -40,7 +41,7 @@ test('report and application data routes require a signed-in session', async () 
       })
     ]);
 
-    assert.deepEqual(responses.map((response) => response.status), [401, 401, 401, 401, 401]);
+    assert.deepEqual(responses.map((response) => response.status), [401, 401, 401, 401, 401, 401]);
   } finally {
     await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   }

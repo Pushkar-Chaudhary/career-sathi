@@ -10,6 +10,14 @@ export async function login({email,password}){
     email,password})
     return response.data
 }
+export async function requestPasswordReset(email) {
+    const response = await api.post('/api/auth/forgot-password', { email });
+    return response.data;
+}
+export async function resetPassword({token, password}) {
+    const response = await api.post('/api/auth/reset-password', { token, password });
+    return response.data;
+}
 export async function logout(){
     const response = await api.post("/api/auth/logout")
     return response.data
@@ -41,5 +49,10 @@ export async function createResumeDraft({profile, consentToAI}){
 }
 export async function askCareerAssistant({messages, consentToAI}){
     const response = await api.post("/api/ai/assistant", {messages, consentToAI})
+    return response.data
+}
+
+export async function createCareerRoadmap({goal, currentLevel, skills, weeklyHours, consentToAI}) {
+    const response = await api.post("/api/ai/roadmap", {goal, currentLevel, skills, weeklyHours, consentToAI})
     return response.data
 }

@@ -23,6 +23,20 @@ const limitRegistrations = createRateLimit({
     windowMs: 60 * 60 * 1000,
     message: 'Too many account creation attempts. Please try again later.'
 });
+const limitPasswordResetRequests = createRateLimit({
+    action: 'auth-password-reset-request',
+    keyFromRequest: clientKey,
+    maxRequests: 5,
+    windowMs: 60 * 60 * 1000,
+    message: 'Too many password reset requests. Please try again later.'
+});
+const limitPasswordResets = createRateLimit({
+    action: 'auth-password-reset',
+    keyFromRequest: clientKey,
+    maxRequests: 10,
+    windowMs: 60 * 60 * 1000,
+    message: 'Too many password reset attempts. Please try again later.'
+});
 
 authRouter.post(
     "/register",
@@ -37,6 +51,9 @@ authRouter.post(
     limitLoginAttempts,
     authController.loginUserController
 );
+
+authRouter.post('/forgot-password', requireTrustedOrigin, limitPasswordResetRequests, authController.requestPasswordResetController);
+authRouter.post('/reset-password', requireTrustedOrigin, limitPasswordResets, authController.resetPasswordController);
 
 authRouter.post("/logout", requireTrustedOrigin, authMiddleware.authUser, authController.logoutUserController);
 authRouter.get("/get-me", authMiddleware.authUser, authController.getMeController);

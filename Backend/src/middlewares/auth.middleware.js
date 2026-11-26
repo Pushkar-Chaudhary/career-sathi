@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const tokenBlacklistModel = require('../models/blacklist.model');
+const userModel = require('../models/user.model');
 const { hashSessionToken } = require('../utils/session-token');
 
 async function authUser(req, res, next) {
@@ -32,6 +33,11 @@ async function authUser(req, res, next) {
             return res.status(401).json({
                 message: 'Token is invalid'
             });
+        }
+
+        const user = await userModel.findById(decoded.id).select('authVersion');
+        if (!user || (decoded.authVersion || 0) !== (user.authVersion || 0)) {
+            return res.status(401).json({ message: 'Your session has expired. Please sign in again.' });
         }
 
         req.user = decoded;

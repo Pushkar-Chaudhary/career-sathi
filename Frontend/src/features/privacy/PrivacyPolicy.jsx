@@ -4,12 +4,12 @@ function PrivacyPolicy() {
   return (
     <main className="privacy-page">
       <header className="privacy-header">
-        <Link className="privacy-brand" to="/">Career Sathi</Link>
+        <Link className="privacy-brand" to="/" aria-label="Career Sathi home"><img src="/career-sathi-logo.png" alt="Career Sathi" /></Link>
         <Link to="/login">Sign in</Link>
       </header>
 
       <article className="privacy-card">
-        <p className="eyebrow">Last updated September 30, 2026</p>
+        <p className="eyebrow">Last updated November 26, 2026</p>
         <h1>Privacy policy</h1>
         <p className="privacy-intro">
           This notice explains what Career Sathi stores and how information is used in this application.
@@ -21,16 +21,17 @@ function PrivacyPolicy() {
           <h2>Information this app stores</h2>
           <ul>
             <li>Account name and email address. Passwords are stored as bcrypt hashes, not as readable passwords.</li>
+            <li>Password reset links are sent to your account email through the email service configured by the site operator.</li>
             <li>Job titles, company names, job links, notes, and application statuses you save in the opportunity tracker.</li>
             <li>Job descriptions, resume text, optional self-description, and AI-generated interview reports you submit or create. Reports are saved to your account so you can view their history.</li>
-            <li>Resume-builder details and in-app guide messages are sent to Google Gemini only when you submit them with consent. Resume drafts and guide conversations are not saved to your Career Sathi account; guide messages remain in the current browser session.</li>
+            <li>Resume-builder details, career roadmap details, and in-app guide messages are sent to Google Gemini only when you submit them with consent. Resume drafts and roadmaps are not saved to your account; guide messages remain in the current browser session.</li>
             <li>A signed-in session cookie and a hashed session token record when you sign out.</li>
           </ul>
         </section>
 
         <section>
           <h2>How information is used</h2>
-          <p>Account information is used to sign you in and keep your records associated with your account. Application details are used to show and update your opportunity tracker. Job descriptions, resume text, and an optional self-description are sent to Google Gemini to generate a role match, interview questions, skill gaps, and a preparation plan. Resume-builder details are sent to create an editable draft, and guide messages are sent to answer app and career questions. Resume-builder inputs and guide conversations are not saved in the app database.</p>
+          <p>Account information is used to sign you in and keep your records associated with your account. Application details are used to show and update your opportunity tracker. Job descriptions, resume text, and an optional self-description are sent to Google Gemini to generate a role match, interview questions, skill gaps, and a preparation plan. Resume-builder details are sent to create an editable draft, roadmap details are sent to create a career plan, and guide messages are sent to answer app and career questions. Resume drafts, roadmap inputs and outputs, and guide conversations are not saved in the app database.</p>
         </section>
 
         <section className="privacy-ai-notice">

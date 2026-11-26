@@ -5,14 +5,14 @@ async function incrementBucket(bucketId, maxRequests, expiresAt) {
     return await rateLimitBucketModel.findOneAndUpdate(
       { _id: bucketId, count: { $lt: maxRequests } },
       { $inc: { count: 1 }, $setOnInsert: { expiresAt } },
-      { new: true, upsert: true }
+      { returnDocument: 'after', upsert: true }
     );
   } catch (error) {
     if (error.code !== 11000) throw error;
     return rateLimitBucketModel.findOneAndUpdate(
       { _id: bucketId, count: { $lt: maxRequests } },
       { $inc: { count: 1 } },
-      { new: true }
+      { returnDocument: 'after' }
     );
   }
 }
@@ -63,4 +63,18 @@ const limitCareerGuide = createUserRateLimit({
   message: 'You have sent several guide questions. Please wait a few minutes and try again.'
 });
 
-module.exports = { createRateLimit, createUserRateLimit, limitResumeDrafts, limitCareerGuide };
+const limitCareerRoadmap = createUserRateLimit({
+  action: 'career-roadmap',
+  maxRequests: 4,
+  windowMs: 15 * 60 * 1000,
+  message: 'You have created several roadmaps recently. Please try again in a few minutes.'
+});
+
+const limitInterviewReports = createUserRateLimit({
+  action: 'interview-report',
+  maxRequests: 4,
+  windowMs: 15 * 60 * 1000,
+  message: 'You have created several interview reports recently. Please try again in a few minutes.'
+});
+
+module.exports = { createRateLimit, createUserRateLimit, limitResumeDrafts, limitCareerGuide, limitCareerRoadmap, limitInterviewReports };

@@ -1,14 +1,16 @@
 
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 
 function Login() {
     const { loading, handleLogin } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState("");
 
     const handleSubmit = async (e) => {
@@ -31,9 +33,7 @@ function Login() {
             <div className="auth-shell">
 
                 <div className="auth-panel auth-brand">
-                    <span className="brand-mark">
-                        Career Sathi
-                    </span>
+                    <img className="brand-logo auth-brand-logo" src="/career-sathi-logo.png" alt="Career Sathi — Guide to Get Hired" />
 
                     <h1>Welcome back</h1>
 
@@ -50,7 +50,10 @@ function Login() {
                 </div>
 
                 <div className="auth-panel auth-form-panel">
-                    <h2>Login</h2>
+                    <p className="auth-eyebrow">YOUR NEXT CHAPTER STARTS HERE</p>
+                    <h2>Welcome back</h2>
+                    <p className="auth-intro">Sign in to pick up where you left off.</p>
+                    {location.state?.message && <p className="form-success" role="status">{location.state.message}</p>}
 
                     <form
                         className="auth-form"
@@ -72,31 +75,26 @@ function Login() {
                             />
                         </label>
 
-                        <label>
-                            Password
-
+                        <label htmlFor="password">Password</label>
+                        <div className="password-field">
                             <input
-                                type="password"
+                                type={showPassword ? "text" : "password"}
                                 placeholder="••••••••"
                                 id="password"
                                 name="password"
+                                autoComplete="current-password"
                                 value={password}
                                 onChange={(e) =>
                                     setPassword(e.target.value)
                                 }
                                 required
                             />
-                        </label>
+                            <button className="password-toggle" type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword}>{showPassword ? "Hide" : "Show"}</button>
+                        </div>
 
                         <div className="form-meta">
-                            <label className="check-row">
-                                <input type="checkbox" />
-                                <span>Remember me</span>
-                            </label>
-
-                            <Link to="/register">
-                                Forgot?
-                            </Link>
+                            <span className="muted-copy">Your session lasts 24 hours.</span>
+                            <Link to="/forgot-password">Forgot password?</Link>
                         </div>
 
                         {error && <p className="form-error" role="alert">{error}</p>}

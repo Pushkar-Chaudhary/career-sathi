@@ -1,5 +1,5 @@
 const interviewReportModel = require('../models/interviewReport.model');
-const { generateInterviewReport, generateResumeDraft, answerCareerAssistant } = require('../services/ai.service');
+const { generateInterviewReport, generateResumeDraft, answerCareerAssistant, generateCareerRoadmap } = require('../services/ai.service');
 
 const INPUT_LIMITS = {
   jobDescription: 20000,
@@ -146,7 +146,9 @@ async function answerCareerAssistantController(req, res) {
     role: message?.role,
     content: getText(message?.content)
   }));
+  const invalidSequence = cleanMessages.some((message, index) => message.role !== (index % 2 === 0 ? 'user' : 'assistant'));
   if (cleanMessages.some(({ role, content }) => !['user', 'assistant'].includes(role) || !content || content.length > 1500)
+      || invalidSequence
       || cleanMessages.at(-1)?.role !== 'user'
       || cleanMessages.reduce((total, message) => total + message.content.length, 0) > 8000) {
     return res.status(400).json({ message: 'The conversation is invalid or too long. Start a new chat and try again.' });
@@ -163,11 +165,39 @@ async function answerCareerAssistantController(req, res) {
   }
 }
 
+async function createCareerRoadmapController(req, res) {
+  const goal = getText(req.body?.goal);
+  const currentLevel = getText(req.body?.currentLevel);
+  const skills = getText(req.body?.skills);
+  const weeklyHours = req.body?.weeklyHours;
+
+  if (!goal || !currentLevel) {
+    return res.status(400).json({ message: 'Add your target career goal and current experience to create a roadmap.' });
+  }
+  if (goal.length > 160 || currentLevel.length > 3000 || skills.length > 3000) {
+    return res.status(400).json({ message: 'Shorten your goal to 160 characters and your experience and skills to 3,000 characters each.' });
+  }
+  if (!Number.isInteger(weeklyHours) || weeklyHours < 1 || weeklyHours > 40) {
+    return res.status(400).json({ message: 'Weekly time must be a whole number between 1 and 40 hours.' });
+  }
+  if (req.body?.consentToAI !== true) {
+    return res.status(400).json({ message: 'Confirm you are at least 18 and agree to send these details to Google Gemini.' });
+  }
+
+  try {
+    const roadmap = await generateCareerRoadmap({ goal, currentLevel, skills, weeklyHours });
+    return res.status(200).json({ roadmap });
+  } catch (error) {
+    return aiErrorResponse(res, 'Gemini career roadmap', error);
+  }
+}
+
 module.exports = {
   createInterviewReportController,
   getInterviewReportsController,
   deleteInterviewReportController,
   createResumeDraftController,
   answerCareerAssistantController,
+  createCareerRoadmapController,
   aiErrorResponse
 };
