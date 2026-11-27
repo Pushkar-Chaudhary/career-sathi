@@ -14,8 +14,16 @@ async function startServer() {
   });
 }
 
-startServer().catch((error) => {
-  console.error('Failed to start server:', error.message);
-  process.exit(1);
-});
+if (!process.env.VERCEL) {
+  startServer().catch((error) => {
+    console.error('Failed to start server:', error.message);
+    process.exit(1);
+  });
+}
+
+module.exports = async (req, res) => {
+  validateRuntimeConfig();
+  await connectToDB();
+  return app(req, res);
+};
 

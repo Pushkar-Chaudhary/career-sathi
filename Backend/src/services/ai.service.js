@@ -1,6 +1,17 @@
 const { GoogleGenAI } = require('@google/genai');
 require('../config/load-env');
 
+// Ordered list of models to try when the primary is overloaded.
+// The first entry is used unless GEMINI_MODEL env var overrides it.
+const FALLBACK_MODELS = [
+  'gemini-3.5-flash-lite',
+  'gemini-flash-lite-latest',
+  'gemini-3.5-flash',
+  'gemini-3.6-flash',
+  'gemini-3.7-flash',
+  'gemini-3.8-flash',
+];
+
 function missingApiKeyError() {
   const error = new Error('GOOGLE_GENAI_API_KEY is not set in Backend/.env.');
   error.status = 503;
@@ -8,19 +19,34 @@ function missingApiKeyError() {
   return error;
 }
 
-async function generateContentWithRetry(ai, request) {
+function isOverloaded(error) {
+  const status = Number(error.status || error.statusCode);
   const retryableStatuses = new Set([408, 500, 502, 503, 504]);
+  const retryableCode = ['DEADLINE_EXCEEDED', 'INTERNAL', 'UNAVAILABLE'].includes(String(error.code).toUpperCase());
+  return retryableStatuses.has(status) || retryableCode;
+}
 
-  for (let attempt = 0; ; attempt += 1) {
-    try {
-      return await ai.models.generateContent(request);
-    } catch (error) {
-      const status = Number(error.status || error.statusCode);
-      const retryableCode = ['DEADLINE_EXCEEDED', 'INTERNAL', 'UNAVAILABLE'].includes(String(error.code).toUpperCase());
-      if ((!retryableStatuses.has(status) && !retryableCode) || attempt >= 2) throw error;
-      await new Promise((resolve) => setTimeout(resolve, 300 * (2 ** attempt)));
+async function generateContentWithRetry(ai, request) {
+  // Build the model list: configured primary first, then fallbacks (deduped).
+  const primary = process.env.GEMINI_MODEL || FALLBACK_MODELS[0];
+  const models = [primary, ...FALLBACK_MODELS.filter((m) => m !== primary)];
+
+  let lastError;
+  for (const model of models) {
+    const req = { ...request, model };
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        return await ai.models.generateContent(req);
+      } catch (error) {
+        lastError = error;
+        if (!isOverloaded(error)) throw error; // non-transient: fail immediately
+        // 503/overload: brief back-off then try again (then next model)
+        await new Promise((resolve) => setTimeout(resolve, 300 * (2 ** attempt)));
+      }
     }
+    // All 3 attempts for this model failed with overload — try next model
   }
+  throw lastError;
 }
 
 const reportSchema = {
@@ -119,7 +145,6 @@ async function generateInterviewReport({ jobDescription, resume, selfDescription
 
   const ai = new GoogleGenAI({ apiKey });
   const response = await generateContentWithRetry(ai, {
-    model: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
     contents: [
       `JOB DESCRIPTION:\n${jobDescription}`,
       `RESUME:\n${resume}`,
@@ -157,7 +182,6 @@ async function generateResumeDraft(profile) {
 
   const ai = new GoogleGenAI({ apiKey });
   const response = await generateContentWithRetry(ai, {
-    model: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
     contents: [
       `TARGET ROLE:\n${profile.targetRole}`,
       `NAME AND CONTACT:\n${profile.contact || 'Not provided.'}`,
@@ -182,7 +206,6 @@ async function answerCareerAssistant(messages) {
 
   const ai = new GoogleGenAI({ apiKey });
   const response = await generateContentWithRetry(ai, {
-    model: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
     contents: messages.map(({ role, content }) => ({
       role: role === 'assistant' ? 'model' : 'user',
       parts: [{ text: content }]
@@ -207,7 +230,6 @@ async function generateCareerRoadmap({ goal, currentLevel, skills, weeklyHours }
 
   const ai = new GoogleGenAI({ apiKey });
   const response = await generateContentWithRetry(ai, {
-    model: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
     contents: [
       `TARGET GOAL:\n${goal}`,
       `CURRENT LEVEL AND EXPERIENCE:\n${currentLevel}`,
